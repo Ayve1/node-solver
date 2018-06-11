@@ -2,26 +2,42 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
-app.use(bodyParser.json());
-
 const math = require('mathjs');
-let startTime;
-const N = 20000;
+const path = require('path');
+app.use(bodyParser.json());
+//Store all HTML files in view folder.
+app.use(express.static(__dirname + '/View'));
+//Store all JS and CSS in Scripts folder.
+app.use(express.static(__dirname + '/Script'));
+
+//dangerous solution - to change!
+app.use(function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
+const N = 500;
 let packagesAll = [];
 let packagesAvailable = [];
 let packagesDone = [];
 let packagesInWork = [];
 function fillPackages(n, min, max){
     for(let i=0; i<n; i++)
-        packagesAll.push({id: i, matrix: math.random([3, 3], min, max), result: math.random([3, 1], min, max)});
+        packagesAll.push({id: i, matrix: math.random([15, 15], min, max), result: math.random([15, 1], min, max)});
 }
 
+// Obsługa strony - GET
+app.get('/web', function(req, res) {
+    res.sendFile(path.join(__dirname+'/View/website.html'));
+});
 
+// Wysyłanie danych metodą GET
 app.get('/', (req, res) => {
     if(packagesAvailable.length === N) {
         console.log("INFO: Do zrobienia: "+packagesAvailable.length);
         startTime = Date.now();
-        console.log("TIMER: start");
+        console.time('TIME');
     }
     let pack = packagesAvailable.shift();
     if(pack) {
@@ -33,6 +49,7 @@ app.get('/', (req, res) => {
     }
 });
 
+//Odbieranie wyników POST
 app.post('/package', (req, res) =>{
     for(let i=0; i<packagesInWork.length; i++){
         if(packagesInWork[i].data.id === req.body.id) {
@@ -45,11 +62,11 @@ app.post('/package', (req, res) =>{
     console.log("POST: Skończone pakiety = "+packagesDone.length);
     res.status(201).send('Got your result\n');
     if(packagesDone.length === N){
-        console.log("TIMER: STOP, TIME: "+(Date.now()-startTime));
+        console.timeEnd('TIME');
     }
 });
 
-
+// Weryfikacja, czy powierzone zadanie zostało wykonane
 setInterval(function(){
     for(let i=0; i< packagesInWork.length; i++){
         if(Date.now() - packagesInWork[i].time >  5000){
