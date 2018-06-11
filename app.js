@@ -11,7 +11,7 @@ async function getCalculatePost() {
     if(data) {
         count++;
         console.log(count);
-        let result = math.lsolve(data.matrix, data.result);
+        let result = {id: data.id, result: math.lsolve(data.matrix, data.result)};
         await axios.post(url + '/package', result);
         await getCalculatePost();
     }
